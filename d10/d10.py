@@ -38,7 +38,7 @@ while all(a<b for a, b in zip(nextent, cextent)):
         points[i] = tuple(a+b for a, b in zip(point, velocity))
     nextent = tuple(a-b for a, b in zip(starmap(max, zip(*points)), starmap(min, zip(*points))))
     count += 1
-print("DONE")
 
+print("DONE")
 print_grid(ppoints)
 print(f"Number of seconds to message: {count-1}")
