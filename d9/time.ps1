@@ -1,4 +1,4 @@
 $sw = [Diagnostics.Stopwatch]::StartNew()
-python .\d9.py
+python .\d9_opt.py
 $sw.Stop()
 $sw.Elapsed
