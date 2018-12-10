@@ -19,10 +19,10 @@ with open("input.txt", "r") as inp:
 def print_grid(points):
     offs = tuple(starmap(min, zip(*points)))
     extent = tuple(a-b+1 for a, b in zip(starmap(max, zip(*points)), offs))
-    arr = [['.']*extent[1] for _ in range(extent[0])]
+    arr = [[' ']*extent[1] for _ in range(extent[0])]
     for point in points:
         x, y = tuple(a-b for a, b in zip(point, offs))
-        arr[x][y] = "#"
+        arr[x][y] = "▮"
     for line in zip(*arr):
         print("".join(line))
 
