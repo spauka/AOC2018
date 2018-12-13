@@ -28,7 +28,7 @@ class expanding_list(list):
         super().__setitem__(i, val)
     
     def copy(self):
-        return expanding_list(super().copy())
+        return expanding_list(self)
 
 rules = defaultdict(lambda: False)
 initial_state = expanding_list()
@@ -50,11 +50,11 @@ def print_state(l, generation):
     print(f"{generation:3}: {''.join('#' if x else '.' for x in l)} ({score(l):6})")
 def print_count(n):
     print(f"{'':3}: {' '*(n)}*")
-def score(l):
+def score(l, pad=padl):
     s = 0
     for i, v in enumerate(l):
         if v:
-            s += i-padl
+            s += i-pad
     return s
 
 # Run for 20 generations
