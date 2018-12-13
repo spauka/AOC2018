@@ -2,7 +2,6 @@ import re
 from collections import defaultdict, Counter, deque
 from functools import partial
 from itertools import starmap, product
-import numpy as np
 
 def calc_fuel(x, y, serial=3031):
     rack_id = x + 10
