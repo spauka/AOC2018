@@ -147,11 +147,9 @@ class Grid:
                          (pos[0],   pos[1]+1))
         return possibilities
     def neighbours_valid(self, pos):
-        possibilities = self.neighbours(pos)
-        return tuple(p for p in possibilities if self.validate_pos(p))
+        return tuple(p for p in self.neighbours(pos) if self.validate_pos(p))
     def neighbours_empty(self, pos):
-        possibilities = self.neighbours_valid(pos)
-        return tuple(p for p in possibilities if self.at_pos(p) is None)
+        return tuple(p for p in self.neighbours_valid(pos) if self.at_pos(p) is None)
 
     @property
     def alive(self):
