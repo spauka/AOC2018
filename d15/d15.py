@@ -13,6 +13,7 @@ class Creature:
         self.x = x
         self.y = y
         self.grid = grid
+        self.alive = True
     
     def __repr__(self):
         return f"<{self.__class__.__name__} @ {self.pos}, HP: {self.hp}>"
@@ -50,19 +51,20 @@ class Creature:
         # Check if there are any creatures in range, and calculate
         # where we'd move if there is one
         targets_avail = False
-        for t in self.grid.creatures:
-            if self.is_target(t):
-                targets_avail = True
-                if self.pos in t.hitbox():
-                    near_targets.append(t)
-                for target in t.target_area():
-                    if target not in targets:
-                        targets[target] = t
+        for t in self.grid.alive:
+            if not self.is_target(t):
+                continue
+            targets_avail = True
+            if self.pos in t.hitbox():
+                near_targets.append(t)
+            for target in t.target_area():
+                if target not in targets:
+                    targets[target] = t
         if not targets_avail:
             return Action("game_end", None, self.pos)
         
         if near_targets:
-            near_targets.sort(key=lambda x: (x.hp, x.y, x.x))
+            near_targets.sort(key=lambda x: (x.hp, x))
             return Action("target", near_targets[0], self.pos)
             
         # If we've gotten here, we need to move, let's figure out
@@ -75,14 +77,14 @@ class Creature:
             if t in d_grid:
                 if d_grid[t].dist < minv:
                     minv = d_grid[t].dist
-                    mins = [(t, targets[t])]
+                    mins = [t]
                 elif d_grid[t].dist == minv:
-                    mins.append((t, targets[t]))
+                    mins.append(t)
 
         if mins:
-            mins.sort(key=lambda x: (x[0][1], x[0][0]))
-            path = self.grid.backtrack(d_grid[mins[0][0]])
-            return Action("move", mins[0][1], path[1].pos)
+            mins.sort(key=lambda x: (x[1], x[0]))
+            path = self.grid.backtrack(d_grid[mins[0]])
+            return Action("move", self, path[1].pos)
         else:
             return Action("none", self, None)
 
@@ -151,6 +153,10 @@ class Grid:
         possibilities = self.neighbours_valid(pos)
         return tuple(p for p in possibilities if self.at_pos(p) is None)
 
+    @property
+    def alive(self):
+        return tuple(c for c in self.creatures if c.alive)
+
     def validate_pos(self, pos):
         if pos[0] < 0 or pos[0] >= self.xdim:
             return False
@@ -160,7 +166,7 @@ class Grid:
             return False
         return True
     def at_pos(self, pos):
-        for c in self.creatures:
+        for c in self.alive:
             if pos == c.pos:
                 return c
         return None
@@ -168,22 +174,22 @@ class Grid:
     def calc_d(self, pos):
         visited = {}
         next_nodes = deque((Nodes(0, pos, None),))
+        at_pos = {c.pos for c in self.alive}
 
         while next_nodes:
-            next_node = next_nodes.pop()
-            for neighbour in grid.neighbours_empty(next_node.pos):
-                if neighbour in visited:
+            visiting = next_nodes.pop()
+            for neighbour in self.neighbours_valid(visiting.pos):
+                if neighbour in visited or neighbour in at_pos:
                     continue
-                new_node = Nodes(next_node.dist+1, neighbour, next_node)
+                new_node = Nodes(visiting.dist+1, neighbour, visiting)
                 visited[neighbour] = new_node
                 next_nodes.appendleft(new_node)
         return visited
     def backtrack(self, end):
         path = deque()
-        next_pos = end
-        while next_pos:
-            path.appendleft(next_pos)
-            next_pos = next_pos.previous
+        while end:
+            path.appendleft(end)
+            end = end.previous
         return tuple(path)
 
     def print_grid(self, flag=()):
@@ -215,72 +221,60 @@ class Grid:
     def ydim(self):
         return len(self.grid)
 
-grid = Grid()
-with open("input.txt", "r") as f:
-    for y, line in enumerate(f):
-        line = line.strip()
-        cline = []
-        for x, c in enumerate(line):
-            if c == "E":
-                grid.append_creature(Elf, (x, y))
-                cline.append('.')
-            elif c == "G":
-                grid.append_creature(Goblin, (x, y))
-                cline.append('.')
-            else:
-                cline.append(c)
-        grid.append(tuple(cline))
+def solve(elf_power=3):
+    grid = Grid()
+    with open("input.txt", "r") as f:
+        for y, line in enumerate(f):
+            line = line.strip()
+            cline = []
+            for x, c in enumerate(line):
+                if c == "E":
+                    grid.append_creature(Elf, (x, y))
+                    cline.append('.')
+                elif c == "G":
+                    grid.append_creature(Goblin, (x, y))
+                    cline.append('.')
+                else:
+                    cline.append(c)
+            grid.append(tuple(cline))
 
-Elf.POWER = 16
+    Elf.POWER = elf_power
 
-grid.print_grid()
-rounds = 0
-game_end = False
-while True:
-    i = 0
-    while i < len(grid.creatures):
-        c = grid.creatures[i]
-        action = c.pick_next_action()
-        #print(f"Action for {c}: {action}")
-
-        # Check if the game is over
-        if action.action == "game_end":
-            game_end = True
-            break
-
-        # Check if we need to move
-        if action.action == "move":
-            c.pos = action.pos
+    rounds = 0
+    while True:
+        for c in grid.alive:
+            if not c.alive: # Could have died during the turn...
+                continue
             action = c.pick_next_action()
-        if action.action == "target":
-            action.creature.hp -= c.power
-            if action.creature.hp <= 0:
-                print(f"Creature {action.creature} died!")
-                ind = grid.creatures.index(action.creature)
-                if ind < i:
-                    i -= 1
-                grid.creatures.pop(ind)
-        elif action.action == "none":
-            pass
 
-        i += 1
-    grid.creatures.sort()
+            # Check if the game is over
+            if action.action == "game_end":
+                break
 
-    # Check end condition
-    if game_end:
+            # Check if we need to move
+            if action.action == "move":
+                c.pos = action.pos
+                action = c.pick_next_action()
+            if action.action == "target":
+                action.creature.hp -= c.power
+                if action.creature.hp <= 0:
+                    action.creature.alive = False
+        else:
+            grid.creatures.sort()
+            rounds += 1
+            continue
         break
+        
+    print(f"Game over after {rounds} rounds. Creatures alive: {grid.alive}.")
 
-    #print(f"Round: {rounds:3}. {grid.creatures}")
-    #grid.print_grid()
-    print(f"Round: {rounds:3}")
+    points = sum(c.hp for c in grid.alive)*rounds
 
-    rounds += 1
-    
-print(f"Game over after {rounds} rounds. Creatures alive: {grid.creatures}.")
+    print(f"Score: {points}")
+    return all(tuple(c.alive for c in grid.creatures if isinstance(c, Elf)))
 
-points = 0
-for c in grid.creatures:
-    points += c.hp
-points *= rounds
-
-print(f"Score: {points}")
+power = 3
+all_alive = solve(power)
+while not all_alive:
+    power += 1
+    print(f"Solving with power {power}")
+    all_alive = solve(power)
