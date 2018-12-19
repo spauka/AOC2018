@@ -1,0 +1,47 @@
+addi 3 16 3; GOTO CALC BEGIN
+
+
+seti 1 6 1; v1 = 1
+seti 1 4 5; v5 = 1
+mulr 1 5 4; v4 = v1 * v5
+
+addr 4 3 3; if (v4 == v2): v0 += 1
+addi 5 1 5; v5 += 1
+
+---
+addr 3 4 3; if v5 > v2:
+    addi 1 1 1; v1 += 1
+    addr 4 3 3; if v1 > v2: HALT; else: goto l_5
+else:
+    seti 2 6 3; goto l_6
+
+---
+
+addr 3 4 3; if (v5 > v2)
+seti 2 6 3; GOTO l_6
+addi 1 1 1; v1 += 1
+gtrr 1 2 4; v4 = int(v1 > v2)
+addr 4 3 3; if (v1 > v2): HALT
+seti 1 1 3; goto l_5
+mulr 3 3 3; HALT
+
+
+addi 2 2 2; v2 = v2 + 2
+mulr 2 2 2; v2 = v2 * v2
+mulr 3 2 2; v2 = v2 * 19
+muli 2 11 2; v2 = v2 * 11
+addi 4 8 4; v4 = v4 + 8
+mulr 4 3 4; v4 = v4 * 22
+addi 4 12 4; v4 = v4 + 12
+addr 2 4 2; v2 = v2 + v4
+addr 3 0 3; IP = v0 + IP
+seti 0 2 3; GOTO l_4
+setr 3 9 4; v4 = 27
+mulr 4 3 4; v4 = v4 * 28
+addr 3 4 4; v4 = 29 + v4
+mulr 3 4 4; v4 = 30 * v4
+muli 4 14 4; v4 = v4 * 14
+mulr 4 3 4; v4 = 32 * v4
+addr 2 4 2; v2 = v2 + v4
+seti 0 4 0; v0 = 0
+seti 0 3 3; GOTO l_4
