@@ -85,14 +85,8 @@ for op in ops:
     else:
         mapping[args[0]] = valid_states
 
-def ambiguous(mapping):
-    for _, s in mapping.items():
-        if len(s) > 1:
-            return True
-    return False
-
 cleared = set()
-while ambiguous(mapping):
+while not all(len(s) == 1 for s in mapping.values()):
     for val, s in mapping.items():
         if len(s) == 1 and val not in cleared:
             cleared.add(val)
@@ -100,7 +94,6 @@ while ambiguous(mapping):
     else:
         print("Couldn't disambiguate!")
         exit(0)
-        break
     
     for o in mapping:
         if o == val:
@@ -108,10 +101,10 @@ while ambiguous(mapping):
         mapping[o].difference_update(s)
 
 print(f"{count} inputs are valid for more than 3 operators")
-print(mapping)
 
 for val in mapping:
     mapping[val] = mapping[val].pop()
+print(mapping)
 
 with open("input_p.txt", "r") as f:
     state = (0,0,0,0)
