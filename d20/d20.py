@@ -44,7 +44,7 @@ def follow_paths(cpos, tree, seen, path='', dist=0):
             elif c == "W": npos = (cpos[0]-1, cpos[1])
             elif c == "N": npos = (cpos[0], cpos[1]-1)
             elif c == "S": npos = (cpos[0], cpos[1]+1)
-            if npos in seen:
+            if npos in seen: # NOTE: THIS IS WRONG!!! Since we're effectively doing DFS here, there is no guarantee that the previously seen path is the shortest.
                 dist, path = seen[npos]
             else:
                 dist += 1
@@ -66,7 +66,7 @@ def follow_paths(cpos, tree, seen, path='', dist=0):
 
         return max(paths, key=itemgetter(1))
 
-with open("input.txt", "r") as f:
+with open("input_c3.txt", "r") as f:
     inp = deque(f.read().strip())
 inp.popleft()
 inp = parse(inp)
