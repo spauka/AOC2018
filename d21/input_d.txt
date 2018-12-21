@@ -1,0 +1,47 @@
+#ip 4
+seti 123 0 3; v3 = 123
+bani 3 456 3; v3 = v3 & 456
+---
+eqri 3 72 3; v3 = (v3 == 72)
+addr 3 4 4; if v3 == 72: v3 = 0
+seti 0 0 4; else: goto l_3
+seti 0 5 3; v3 = 0
+---
+bori 3 65536 5; v5 = 65536
+seti 5557974 2 3; v3 = 5557974
+---
+bani 5 255 2; v2 = v5 & 255 (= 0)
+addr 3 2 3; v3 = v2 + v3 (=5557974)
+bani 3 16777215 3; v3 = v3 and 16777215 (=5557974)
+muli 3 65899 3; v3 = v3 * 65899 (=366264928626)
+bani 3 16777215 3; v3 = v3 & 16777215 (=1526130)
+---
+gtir 256 5 2; v2 = (256 > v5)
+addr 2 4 4; if (256 > v5): goto l_44
+addi 4 1 4; else: pass
+seti 27 9 4; goto l_44
+---
+seti 0 0 2; v2 = 0
+addi 2 1 1; v1 = v2 + 1
+muli 1 256 1; v1 = v1*256
+---
+gtrr 1 5 1; v1 = v1 > v5
+addr 1 4 4; if v1 > v5: goto l_41
+addi 4 1 4; else: pass
+seti 25 4 4; goto l_41
+addi 2 1 2; v2 += 2
+seti 17 6 4; goto l_25
+
+if v1 > v5:
+    goto l_41
+else:
+    v2 += 2
+    goto l_25
+
+---
+setr 2 2 5; v5 = v2
+seti 7 1 4; goto l_12
+
+eqrr 3 0 2; v2 = (v3 == v0)
+addr 2 4 4; if (v3 == v0): HALT
+seti 5 7 4; goto l_10
