@@ -1,10 +1,11 @@
-from collections import deque, namedtuple
+from collections import deque
 from operator import itemgetter
+import sys
 
 class Node:
-    def __init__(self, curr, next):
+    def __init__(self, curr, next_node):
         self.curr = curr
-        self.next = next
+        self.next = next_node
         self.loopy = False
     def __repr__(self):
         return f"<Node({self.curr} -> {self.next})>"
@@ -12,7 +13,7 @@ class Node:
 def parse(inp, end="$"):
     curr = Node("", None)
     options = [curr]
-    
+
     while inp[0] != end:
         c = inp.popleft()
         if c == "(":
@@ -37,14 +38,21 @@ def parse(inp, end="$"):
 def follow_paths(cpos, tree, seen, path='', dist=0):
     if tree is None:
         return cpos, dist, path
-    
+
     if isinstance(tree.curr, str):
         for c in tree.curr:
-            if   c == "E": npos = (cpos[0]+1, cpos[1])
-            elif c == "W": npos = (cpos[0]-1, cpos[1])
-            elif c == "N": npos = (cpos[0], cpos[1]-1)
-            elif c == "S": npos = (cpos[0], cpos[1]+1)
-            if npos in seen: # NOTE: THIS IS WRONG!!! Since we're effectively doing DFS here, there is no guarantee that the previously seen path is the shortest.
+            if   c == "E":
+                npos = (cpos[0]+1, cpos[1])
+            elif c == "W":
+                npos = (cpos[0]-1, cpos[1])
+            elif c == "N":
+                npos = (cpos[0], cpos[1]-1)
+            elif c == "S":
+                npos = (cpos[0], cpos[1]+1)
+
+            # NOTE: THIS IS WRONG!!! Since we're effectively doing DFS here,
+            # there is no guarantee that the previously seen path is the shortest.
+            if npos in seen:
                 dist, path = seen[npos]
             else:
                 dist += 1
@@ -53,7 +61,9 @@ def follow_paths(cpos, tree, seen, path='', dist=0):
             cpos = npos
         return follow_paths(cpos, tree.next, seen, path, dist)
     elif isinstance(tree.curr, list):
-        if tree.loopy: # If the options are loopy, let's follow them to find leaf nodes, otherwise skip this node
+        # If the options are loopy, let's follow them to find leaf nodes,
+        # otherwise skip this node
+        if tree.loopy:
             for i in tree.curr:
                 follow_paths(cpos, i, seen, path, dist)
             return follow_paths(cpos, tree.next, seen, path, dist)
@@ -61,18 +71,21 @@ def follow_paths(cpos, tree, seen, path='', dist=0):
         # Alternatively we have to follow all alternative paths
         lpaths = list(follow_paths(cpos, i, seen, path, dist) for i in tree.curr)
         paths = []
-        for npos, d, npath in lpaths:
-            paths.append(follow_paths(npos, tree.next, seen, npath, d))
+        for npos, dist, npath in lpaths:
+            paths.append(follow_paths(npos, tree.next, seen, npath, dist))
 
         return max(paths, key=itemgetter(1))
 
-with open("input_c3.txt", "r") as f:
-    inp = deque(f.read().strip())
-inp.popleft()
-inp = parse(inp)
+if __name__ == "__main__":
+    sys.setrecursionlimit(1500)
 
-seen = {(0,0): (0, '')}
-follow_paths((0, 0), inp, seen)
-print(max(seen.values()))
+    with open("neal.txt", "r") as f:
+        inp_q = deque(f.read().strip())
+    inp_q.popleft()
+    inp_t = parse(inp_q)
 
-print(f"Count: {sum(dist >= 1000 for dist, _ in seen.values())}")
+    seen_p = {(0, 0): (0, '')}
+    follow_paths((0, 0), inp_t, seen_p)
+    print(max(seen_p.values()))
+
+    print(f"Count: {sum(dist >= 1000 for dist, _ in seen_p.values())}")
