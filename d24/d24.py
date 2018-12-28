@@ -22,6 +22,7 @@ class Group:
         self.weaknesses = set()
         self.immunities = set()
         self.init = init
+        self.initial_state = (nunits, att_damage, att_type)
         self._all_units.append(self)
 
     def __repr__(self):
@@ -31,11 +32,11 @@ class Group:
         return f"<{self.__class__.__name__} group with {self.nunits} units ({self.hp} each), weak to {self.weaknesses}, immune to {self.immunities} with attack {self.attack} and initiative {self.init}>"
 
     @classmethod
-    def all_units(cls):
-        all_ = [unit for unit in cls._all_units if unit.alive]
+    def all_units(cls, filter_alive=True):
+        all_units = [unit for unit in cls._all_units if not filter_alive or (filter_alive and unit.alive)]
         for subclass in cls.__subclasses__():
-            all_.extend(subclass.all_units())
-        return all_
+            all_units.extend(subclass.all_units(filter_alive))
+        return all_units
 
     @property
     def alive(self):
@@ -70,6 +71,10 @@ class Group:
         damage = self.propose_attack(o)
         units_killed = damage // o.hp
         o.nunits -= units_killed
+
+    def reset(self):
+        self.nunits = self.initial_state[0]
+        self.attack = Attack(self.initial_state[1], self.initial_state[2])
 
 
 class Immune(Group):
@@ -131,35 +136,77 @@ print("In Game:")
 for unit in Group.all_units():
     print(str(unit))
 
-while Immune.all_units() and Infection.all_units():
-    # Reset targets
-    for unit in Group.all_units():
-        unit.target = None
-        unit.targetted = None
+def play_game(boost=False, boost_amount=0):
+    # Reset all units
+    for unit in Group.all_units(filter_alive=False):
+        unit.reset()
 
-    # Select Targets
-    for unit in sorted(Group.all_units(), key=attrgetter('sort_order'), reverse=True):
-        attack_damages = []
-        for target in (t for t in unit.TARGET.all_units() if not t.targetted):
-            damage = unit.propose_attack(target)
-            if damage > 0:
-                attack_damages.append((damage, target.sort_order, target))
-        if attack_damages:
-            attack_damages.sort(reverse=True)
-            target = attack_damages[0]
-            unit.target = target[2]
-            target[2].targetted = unit
+    # Check if we want to boost a unit
+    if boost:
+        for unit in Immune.all_units():
+            unit.attack.att_damage += boost_amount
 
-    # Perform attacks
-    for unit in sorted(Group.all_units(), key=attrgetter('init'), reverse=True):
-        # Check we're not dead
-        if not unit.alive:
-            continue
-        # And that we have a target
-        if unit.target is None:
-            continue
-        # Otherwise execute the attack
-        unit.execute_attack(unit.target)
+    # Play Game
+    while Immune.all_units() and Infection.all_units():
+        # Reset targetting
+        for unit in Group.all_units():
+            unit.target = None
+            unit.targetted = None
 
-print(Group.all_units())
-print(sum(g.nunits for g in Group.all_units()))
+        # Select Targets
+        for unit in sorted(Group.all_units(), key=attrgetter('sort_order'), reverse=True):
+            attack_damages = []
+            for target in (t for t in unit.TARGET.all_units() if not t.targetted):
+                damage = unit.propose_attack(target)
+                if damage > 0:
+                    attack_damages.append((damage, target.sort_order, target))
+            if attack_damages:
+                target = max(attack_damages)[2]
+                unit.target = target
+                target.targetted = unit
+
+        # Perform attacks
+        pstate = sum(g.nunits for g in Group.all_units())
+        for unit in sorted(Group.all_units(), key=attrgetter('init'), reverse=True):
+            # Check we're not dead
+            if not unit.alive or unit.target is None:
+                continue
+            # Otherwise execute the attack
+            unit.execute_attack(unit.target)
+        nstate = sum(g.nunits for g in Group.all_units())
+        if pstate == nstate:
+            return ("Stalemate", nstate)
+
+    return type(Group.all_units()[0]).__name__, nstate
+
+# Part 1
+print(play_game())
+print(play_game())
+
+# Part 2
+boost = 1
+winner, score = play_game(True, boost)
+# Double until we find a winner
+while winner != 'Immune':
+    print(boost, winner, score)
+    boost *= 2
+    winner, score = play_game(True, boost)
+    if boost > 2**32 and winner == 'Stalemate':
+        break
+else: # Do a binary search
+    lower, upper = boost//2, boost
+    next_boost = lower + (upper-lower)//2
+
+    while True:
+        winner, new_score = play_game(True, next_boost)
+        print(lower, next_boost, upper, winner, score)
+        if winner == 'Immune':
+            upper = next_boost
+        elif winner == 'Infection' or winner == 'Stalemate':
+            lower = next_boost
+        new_next_boost = lower + (upper-lower)//2
+        if new_next_boost in (lower, upper):
+            print(f"Final boost: {next_boost} with score: {score}")
+            break
+        next_boost = new_next_boost
+        score = new_score
