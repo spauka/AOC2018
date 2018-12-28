@@ -4,6 +4,7 @@ from operator import attrgetter, itemgetter
 from collections import defaultdict, deque, namedtuple
 from heapq import heappush, heappop
 import contextlib
+from math import ceil
 
 def qp(line):
     m = re.findall(r"([-\d]+)", line)
@@ -22,10 +23,19 @@ class Pos:
     def __repr__(self):
         return f"Pos({self.x}, {self.y}, {self.z})"
 
+    def __eq__(self, o):
+        return self.x==o.x and self.y==o.y and self.z==o.z
+    def __hash__(self):
+        return hash((self.x, self.y, self.z))
+
     def __add__(self, o):
         return Pos(self.x+o.x, self.y+o.y, self.z+o.z)
     def __sub__(self, o):
         return Pos(self.x-o.x, self.y-o.y, self.z-o.z)
+    def __floordiv__(self, n):
+        return Pos(round(self.x/n), round(self.y/n), round(self.z/n))
+    def __mul__(self, n):
+        return Pos(self.x*n, self.y*n, self.z*n)
     
     def dist(self, o):
         return sum(abs(d) for d in (self.x-o.x, self.y-o.y, self.z-o.z))
@@ -39,10 +49,27 @@ class Bot:
     def __repr__(self):
         return f"Bot({self.pos}, {self.range})"
 
+    def __floordiv__(self, n):
+        return Bot(self.pos//n, ceil(self.range/n)+1)
+
     def in_range(self, o):
-        return self.pos.dist(o.pos) <= self.range
-    def intersects(self, o):
-        return self.pos.dist(o.pos) <= self.range + o.range
+        if isinstance(o, Bot):
+            o = o.pos
+        return self.pos.dist(o) <= self.range
+
+def count_bots_inrange(bots, maxr):
+    count = 0
+    for bot in bots:
+        if maxr.in_range(bot):
+            count += 1
+    return count
+
+def count_inrange(bots, pos):
+    count = 0
+    for bot in bots:
+        if bot.in_range(pos):
+            count += 1
+    return count
 
 bots = []
 with open("input.txt", "r") as f:
@@ -51,31 +78,29 @@ with open("input.txt", "r") as f:
         bots.append(Bot(Pos(x, y, z), r))
 bots.sort(key=attrgetter('range'))
 maxr = bots[-1]
-count = 0
-for bot in bots:
-    if maxr.intersects(bot):
-        count += 1
-print (f"Num in range of {maxr}: {count}")
 
-def count_intersections(botmax, bots):
-    count = 0
-    for bot in bots:
-        if botmax.intersects(bot):
-            count += 1
-    return count
+print (f"Num in range of {maxr}: {count_bots_inrange(bots, maxr)}")
 
-botmax = Bot(Pos(0,0,0), 2**64)
-while botmax.range > 1:
-    print(botmax, count_intersections(botmax, bots))
-    offs = botmax.range//2
-    poss = [Pos( offs//2, 0, 0),
-            Pos(-offs//2, 0, 0),
-            Pos(0,  offs//2, 0),
-            Pos(0, -offs//2, 0),
-            Pos(0, 0,  offs//2),
-            Pos(0, 0, -offs//2)]
-    botmaxes = [Bot(botmax.pos+pos, offs) for pos in poss]
-    botmax = max(botmaxes, key=lambda x: count_intersections(x, bots))
-print(botmax, count_intersections(botmax, bots))
-print (f"Num in range of {botmax}: {count_intersections(botmax, bots)}")
+coords = set([Pos(0, 0, 0)])
+for div in range(8, 0, -1):
+    ncoords = []
+    nbots = [bot//(10**div) for bot in bots]
+    for coord in coords:
+        for npos in product(range(-10, 11), range(-10, 11), range(-10, 11)):
+            npos = coord + Pos(*npos)
+            ncoords.append((count_inrange(nbots, npos), npos*10))
+    mint = max(ncoords, key=itemgetter(0))
+    coords = set(x[1] for x in ncoords if x[0] == mint[0])
+    print(div, coords, mint)
 
+ncoords = []
+for coord in coords:
+    for npos in product(range(-10, 11), range(-10, 11), range(-10, 11)):
+        npos = coord + Pos(*npos)
+        ncoords.append((count_inrange(bots, npos), npos))
+mint = max(ncoords, key=itemgetter(0))
+coords = set(x[1] for x in ncoords if x[0] == mint[0])
+print(div, coords, mint)
+
+for coord in coords:
+    print(coord, coord.x+coord.y+coord.z)
