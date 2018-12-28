@@ -103,4 +103,4 @@ coords = set(x[1] for x in ncoords if x[0] == mint[0])
 print(div, coords, mint)
 
 for coord in coords:
-    print(coord, coord.x+coord.y+coord.z)
+    print(coord, abs(coord.x)+abs(coord.y)+abs(coord.z))
