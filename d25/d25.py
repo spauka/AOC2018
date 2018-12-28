@@ -68,5 +68,3 @@ while nconst != pnconst:
                 j += 1
         i += 1
     print(f"{pnconst:5} -> {nconst:5}")
-
-print(constellations)
