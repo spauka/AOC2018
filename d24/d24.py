@@ -1,4 +1,3 @@
-from functools import total_ordering
 from operator import attrgetter
 import re
 
@@ -29,7 +28,10 @@ class Group:
         return f"<{self.__class__.__name__} {self.sort_order} {self.nunits} units>"
 
     def __str__(self):
-        return f"<{self.__class__.__name__} group with {self.nunits} units ({self.hp} each), weak to {self.weaknesses}, immune to {self.immunities} with attack {self.attack} and initiative {self.init}>"
+        srep = (f"<{self.__class__.__name__} group with {self.nunits} units ({self.hp} each), "
+                f"weak to {self.weaknesses}, immune to {self.immunities} "
+                f"with attack {self.attack} and initiative {self.init}>")
+        return srep
 
     @classmethod
     def all_units(cls, filter_alive=True):
@@ -79,37 +81,36 @@ class Group:
 
 class Immune(Group):
     _all_units = []
-    pass
 
 
 class Infection(Group):
     _all_units = []
-    pass
 
 
 Immune.TARGET = Infection
 Infection.TARGET = Immune
 
 
-def parseInputLine(line, unitType):
-    m = re.match(
-        r"(\d+) units each with (\d+) hit points(?: \(([^)]+)\))? with an attack that does (\d+) (\w+) damage at initiative (\d+)", line)
-    if m:
-        nunits, hp, buffs, att_damage, att_type, init = m.groups()
-        unit = unitType(int(nunits), int(hp), int(att_damage),
+def parse_input_line(inp_line, UnitType):
+    match = re.match(
+        r"(\d+) units each with (\d+) hit points(?: \(([^)]+)\))? "
+        r"with an attack that does (\d+) (\w+) damage at initiative (\d+)", inp_line)
+    if match:
+        nunits, hp, buffs, att_damage, att_type, init = match.groups()
+        unit = UnitType(int(nunits), int(hp), int(att_damage),
                         att_type, int(init))
         if buffs:
-            buffs = parseBuffs(buffs)
+            buffs = parse_buffs(buffs)
             for btype, attributes in buffs:
                 for attribute in attributes:
                     unit.add_buff(btype, attribute)
         return unit
     else:
-        print(f"Failed {line}")
+        raise ValueError(f"Failed {inp_line}")
 
 
-def parseBuffs(line):
-    matches = re.findall(r"(\w+) to ([^;]+)*", line)
+def parse_buffs(buff_str):
+    matches = re.findall(r"(\w+) to ([^;]+)*", buff_str)
     buffs = []
     for btype, attributes in matches:
         attributes = [x.strip() for x in attributes.split(',')]
@@ -118,31 +119,26 @@ def parseBuffs(line):
 
 
 with open("input.txt", "r") as f:
-    unitType = Immune
+    UnitType = Immune
     for line in f:
         line = line.strip()
         if not line:
             continue
 
         if line == "Immune System:":
-            unitType = Immune
+            UnitType = Immune
         elif line == "Infection:":
-            unitType = Infection
+            UnitType = Infection
         else:
-            parseInputLine(line, unitType)
+            parse_input_line(line, UnitType)
 
-print("In Game:")
-# for unit in sorted(Group.all_units(), key=attrgetter('sort_order'), reverse=True):
-for unit in Group.all_units():
-    print(str(unit))
-
-def play_game(boost=False, boost_amount=0):
+def play_game(boost_amount=0):
     # Reset all units
     for unit in Group.all_units(filter_alive=False):
         unit.reset()
 
     # Check if we want to boost a unit
-    if boost:
+    if boost_amount:
         for unit in Immune.all_units():
             unit.attack.att_damage += boost_amount
 
@@ -181,16 +177,15 @@ def play_game(boost=False, boost_amount=0):
 
 # Part 1
 print(play_game())
-print(play_game())
 
 # Part 2
 boost = 1
-winner, score = play_game(True, boost)
+winner, score = play_game(boost)
 # Double until we find a winner
 while winner != 'Immune':
     print(boost, winner, score)
     boost *= 2
-    winner, score = play_game(True, boost)
+    winner, score = play_game(boost)
     if boost > 2**32 and winner == 'Stalemate':
         break
 else: # Do a binary search
@@ -198,7 +193,7 @@ else: # Do a binary search
     next_boost = lower + (upper-lower)//2
 
     while True:
-        winner, new_score = play_game(True, next_boost)
+        winner, new_score = play_game(next_boost)
         print(lower, next_boost, upper, winner, score)
         if winner == 'Immune':
             upper = next_boost
