@@ -11,7 +11,7 @@ class Pos:
         self.y = y
         self.z = z
         self.t = t
-    
+
     def __repr__(self):
         return f"Pos({self.x}, {self.y}, {self.z})"
 
@@ -19,7 +19,7 @@ class Pos:
         return Pos(self.x+o.x, self.y+o.y, self.z+o.z, self.t+o.t)
     def __sub__(self, o):
         return Pos(self.x-o.x, self.y-o.y, self.z-o.z, self.t+o.t)
-    
+
     def dist(self, o):
         return sum(abs(d) for d in (self.x-o.x, self.y-o.y, self.z-o.z, self.t-o.t))
 
