@@ -1,5 +1,3 @@
-from itertools import product
-from operator import attrgetter
 from functools import total_ordering
 from collections import defaultdict, deque, namedtuple
 
@@ -14,7 +12,7 @@ class Creature:
         self.y = y
         self.grid = grid
         self.alive = True
-    
+
     def __repr__(self):
         return f"<{self.__class__.__name__} @ {self.pos}, HP: {self.hp}>"
 
@@ -62,11 +60,11 @@ class Creature:
                     targets[target] = t
         if not targets_avail:
             return Action("game_end", None, self.pos)
-        
+
         if near_targets:
             near_targets.sort(key=lambda x: (x.hp, x))
             return Action("target", near_targets[0], self.pos)
-            
+
         # If we've gotten here, we need to move, let's figure out
         # where to move.
         d_grid = self.grid.calc_d(self.pos)
@@ -102,7 +100,7 @@ class Elf(Creature):
 
     def is_target(self, o):
         return isinstance(o, Goblin)
-    
+
     @property
     def power(self):
         return self.POWER
@@ -111,7 +109,7 @@ class Goblin(Creature):
     @property
     def c(self):
         return "G"
-    
+
     def is_target(self, o):
         return isinstance(o, Elf)
 
@@ -119,7 +117,7 @@ class Grid:
     def __init__(self):
         self.grid = []
         self.creatures = []
-    
+
     def __repr__(self):
         return f"<Grid({self.xdim}, {self.ydim})>"
 
@@ -141,7 +139,7 @@ class Grid:
         self.creatures.sort()
 
     def neighbours(self, pos):
-        possibilities = ((pos[0],   pos[1]-1), 
+        possibilities = ((pos[0],   pos[1]-1),
                          (pos[0]-1, pos[1]),
                          (pos[0]+1, pos[1]),
                          (pos[0],   pos[1]+1))
@@ -262,7 +260,7 @@ def solve(elf_power=3):
             rounds += 1
             continue
         break
-        
+
     print(f"Game over after {rounds} rounds. Creatures alive: {grid.alive}.")
 
     points = sum(c.hp for c in grid.alive)*rounds
